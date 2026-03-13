@@ -21,6 +21,8 @@ kev-cxl/
 │   ├── cxl_config.py            # gem5 基礎 CXL/PCIe 風格配置
 │   ├── ruby_cxl_config.py       # Ruby MESI 多核配置範本
 │   └── analyze_gem5.py          # 解析 m5out/stats.txt 效能指標
+├── docs/
+│   └── 概念筆記.md               # 各模組重要概念說明（中文）
 ├── m5out/
 │   └── stats.txt                # 範例統計檔（可先跑分析腳本試用）
 └── docker/
