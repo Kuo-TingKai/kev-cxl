@@ -30,13 +30,25 @@ if ! command -v docker &>/dev/null; then
   exit 1
 fi
 
-# Use Docker with Fedora and libguestfs-tools
+# Prefer Alpine container (smaller/faster); fallback to Fedora
 ABS_IMAGE="$(cd "$(dirname "$IMAGE")" && pwd)/$(basename "$IMAGE")"
-echo "Using Docker (first run can take 5–15 min: pull image + install libguestfs-tools)..."
+IMG_NAME="$(basename "$ABS_IMAGE")"
+
+echo "Using Docker (Alpine image ~1–2 min first run; if stuck 5+ min, Ctrl+C and re-run)..."
+if docker run --rm \
+  -v "$(dirname "$ABS_IMAGE")":/img \
+  -w /img \
+  alpine:edge \
+  sh -c "apk add --no-cache guestfs-tools 2>/dev/null || apk add --no-cache guestfs-tools --repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing && virt-customize -a $IMG_NAME --root-password password:$PASSWORD"; then
+  echo "Done. Log in as root / $PASSWORD"
+  exit 0
+fi
+
+echo "Alpine method failed, trying Fedora (first run 5–15 min)..."
 docker run --rm \
   -v "$(dirname "$ABS_IMAGE")":/img \
   -w /img \
   fedora:latest \
-  bash -c "dnf install -y libguestfs-tools && virt-customize -a $(basename "$ABS_IMAGE") --root-password password:$PASSWORD"
+  bash -c "dnf install -y libguestfs-tools && virt-customize -a $IMG_NAME --root-password password:$PASSWORD"
 
 echo "Done. Log in as root / $PASSWORD"
