@@ -1,0 +1,15 @@
+# QEMU disk images (large, user-generated)
+*.qcow2
+*.img
+
+# macOS
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# gem5 output (optional; keep m5out/stats.txt sample if desired)
+# m5out/

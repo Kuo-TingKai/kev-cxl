@@ -1,0 +1,6 @@
+sim_ticks 1000000
+sim_seconds 0.001
+system.cpu0.numInsts 50000
+system.ruby.l1_cntrl0.L1Dcache.misses 1000
+system.ruby.network.control_msg_count 200
+system.ruby.network.average_packet_latency 15.5
