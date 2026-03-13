@@ -10,6 +10,8 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 IMAGE="${QEMU_IMAGE:-$PROJECT_DIR/your_linux_image.qcow2}"
 # Optional: boot from ISO to install OS to the disk (e.g. Ubuntu server ISO)
 ISO="${QEMU_ISO:-}"
+# Optional: use graphical window so login prompt appears (set to 1 if -nographic shows no login)
+GRAPHIC="${QEMU_GRAPHIC:-0}"
 
 # Create shm files for CXL (macOS has no /dev/shm, use TMPDIR)
 SHM_DIR="/dev/shm"
@@ -53,6 +55,19 @@ if [[ -n "$ISO" ]] && [[ -f "$ISO" ]]; then
   echo "Booting with CDROM (install OS to disk): $ISO"
 fi
 
+# Display: -nographic = serial only (Alpine login may not show); graphic = VGA window with login
+if [[ "$GRAPHIC" == "1" ]] || [[ "$GRAPHIC" == "yes" ]]; then
+  if [[ "$(uname -s)" == "Darwin" ]]; then
+    DISPLAY_ARGS=(-display cocoa)
+  else
+    DISPLAY_ARGS=(-display gtk)
+  fi
+  echo "Using graphical window (login prompt in window)."
+else
+  DISPLAY_ARGS=(-nographic)
+  echo "Using serial console only. For login prompt use: QEMU_GRAPHIC=1 $0"
+fi
+
 # Attach disk to main PCIe root (pcie.0); pxb-cxl accepts only bridges, not virtio.
 echo "Starting QEMU with CXL Type-3 (accel=$ACCEL)..."
 exec qemu-system-x86_64 \
@@ -68,4 +83,4 @@ exec qemu-system-x86_64 \
   -drive "file=$IMAGE,format=qcow2,if=none,id=drive0" \
   -device virtio-blk-pci,drive=drive0,bus=pcie.0,addr=0x6 \
   "${CDROM_ARGS[@]}" \
-  -nographic
+  "${DISPLAY_ARGS[@]}"

@@ -1,6 +1,6 @@
 # CXL / 先進儲存協定模擬環境 (MacBook)
 
-根據 `kev-cxl.md` 整理的可在 **MacBook (Apple Silicon / Intel)** 上執行的 QEMU + gem5 模擬專案，用於研究 CXL 2.0/3.0、NVMe-oC、多主機共享儲存與 Cache 一致性。
+可在 **MacBook (Apple Silicon / Intel)** 上執行的 QEMU + gem5 模擬專案，用於研究 CXL 2.0/3.0、NVMe-oC、多主機共享儲存與 Cache 一致性。
 
 ---
 
@@ -11,8 +11,9 @@ kev-cxl/
 ├── README.md                    # 本說明（Mac 環境架設步驟）
 ├── requirements.txt             # Python 依賴（可選）
 ├── scripts/
-│   ├── fetch_bootable_image.sh  # 下載可開機 Alpine qcow2（避免 No bootable device）
-│   ├── setup_shared_mem.sh      # 建立共享記憶體檔案（多主機用）
+│   ├── fetch_bootable_image.sh   # 下載可開機 Alpine qcow2（避免 No bootable device）
+│   ├── set_alpine_root_password.sh # 為映像設定 root 密碼（解決無法登入）
+│   ├── setup_shared_mem.sh       # 建立共享記憶體檔案（多主機用）
 │   ├── qemu_cxl_single.sh      # 單機 CXL Type-3 模擬
 │   ├── qemu_cxl_multi_host_a.sh # 多主機 A（Port 2222）
 │   └── qemu_cxl_multi_host_b.sh # 多主機 B（Port 2223）
@@ -84,14 +85,29 @@ chmod +x scripts/qemu_cxl_single.sh
 
 - 會建立 256M + 1G 的 CXL 相關記憶體後端，並掛載一個 CXL Type-3 設備。
 - **Mac (ARM)**：腳本已加入 `-accel tcg`，因無法使用 KVM。
+- **登入提示**：預設為 `-nographic`（僅序列埠），Alpine 的登入可能只出現在 VGA。若要看到登入畫面，請用圖形視窗：
+  ```bash
+  QEMU_GRAPHIC=1 ./scripts/qemu_cxl_single.sh
+  ```
+  會跳出 QEMU 視窗。登入方式見下方「若無法登入」。
 
-### 2.2 進入系統後驗證
+### 2.2 登入與驗證
+
+- **登入**：本專案下載的 generic Alpine 映像**未預設可登入帳號**（供 cloud 使用）。請先為 root 設密碼後再開機：
+  ```bash
+  ./scripts/set_alpine_root_password.sh
+  ```
+  之後以 **root** / **alpine** 登入（需 Docker；或本機安裝 `libguestfs-tools` 則不需 Docker）。序列埠（-nographic）也會出現 `localhost login:`，輸入 root 與密碼即可。
+- 進入系統後可驗證 CXL：
 
 ```bash
-# 查看 CXL 拓撲（需安裝 cxl-cli / ndctl）
+# 查看 CXL 相關 PCI 設備
+lspci -v | grep -A5 0502
+
+# 若有安裝 ndctl：apk add ndctl
 cxl list -uv
 
-# 將 CXL 儲存轉為系統記憶體
+# 將 CXL 儲存轉為系統記憶體（需 kernel 支援）
 daxctl reconfigure-device --mode=system-ram all
 free -h   # 應看到可用 RAM 增加
 ```
@@ -193,6 +209,4 @@ python3 gem5/analyze_gem5.py m5out/stats.txt
 
 ---
 
-## 參考
 
-- 內容來源：`kev-cxl.md`（與 Gemini 討論之 CXL、QEMU、gem5、Mac 環境整理）。
